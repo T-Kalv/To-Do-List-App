@@ -113,7 +113,6 @@ splitComma = splitOn ','
             [] -> []
             (_:rest) -> splitOn delimitter rest
 
-
 -- Add Task
 addTask :: IO ()
 addTask = do
@@ -126,11 +125,10 @@ addTask = do
     currentTime <- getCurrentTime
     let creationDate = formatTime defaultTimeLocale "%d-%m-%Y %H:%M:%S" currentTime
     let modifiedDate = creationDate
-    let taskID = head name : creationDate -- taskID generation: NEED TO fIX THIS AS THERE MAY BE DUPLICALTES WHEN GENERATING!!!
+    let taskID = head name : creationDate -- taskID generation: NEED TO FIX THIS AS THERE MAY BE DUPLICATES WHEN GENERATING!!!
     let newTaskLine = taskID ++ ", " ++ name ++ ", " ++ due ++ ", " ++ remind ++ ", " ++ creationDate ++ ", " ++ modifiedDate
     appendFile "tasks.txt" (newTaskLine ++ "\n")
     putStrLn "Task added successfully!"
--- when adding task add this [] after name of task
 
 -- View Tasks
 viewTasks :: IO ()
@@ -141,17 +139,57 @@ viewTasks = do
         putStrLn "----------------------------"
         displayTasks tasks
 
+-- Remove Task
+removeTask :: IO ()
+removeTask = do
+    tasks <- getTasks
+    if null tasks then
+        putStrLn "No Tasks Stored Previously!"
+    else do
+        putStrLn "Current Tasks: "
+        displayTasks tasks
+        putStrLn "Enter TaskID of the task that you would like to delete: "
+        taskToRemove <- getLine
+        let taskToRemoveInfo = filter (\task -> taskID task == taskToRemove) tasks -- find the relevant taskID to remove
+        if null taskToRemoveInfo then
+            putStrLn "No task found with the given Task ID."
+        else do
+            let task = head taskToRemoveInfo 
+            putStrLn $ "Selected Task To Remove: "
+            putStrLn $ "Task ID: " ++ taskID task
+            putStrLn $ "Name: " ++ taskName task
+            putStrLn $ "Due Date: " ++ dateDue task
+            putStrLn $ "Reminder Date: "
+            putStrLn $ "Reminder Date: " ++ dateToRemind task
+            putStrLn $ "Date Created: " ++ dateCreated task
+            putStrLn $ "Date Modified: " ++ dateModified task
+            putStrLn "Are you sure you would to remove this task? (y/n): "
+            taskRemoveConfirm <- getLine
+            if taskRemoveConfirm == "y" then do
+                let updatedTasks = filter (\task -> taskID task /= taskToRemove) tasks
+                updateTasksToFile updatedTasks
+                putStrLn $ taskID task ++ " has been removed successfully!"  
+            else
+                putStrLn "No tasks were removed"
+
+
+-- Update Tasks To File
+updateTasksToFile :: [Task] -> IO ()
+updateTasksToFile tasks = do
+    let taskLines = map (\task -> taskID task ++ "," ++ taskName task ++ "," ++ dateDue task ++ "," ++ dateToRemind task ++ "," ++ dateCreated task ++ "," ++ dateModified task) tasks
+    writeFile "tasks.txt" (unlines taskLines)
+
 -- Display tasks
 displayTasks :: [Task] -> IO ()
 displayTasks [] = return () 
 displayTasks (task:rest) = do
+    putStrLn $ "Task ID: " ++ taskID task
     putStrLn $ "Name: " ++ taskName task
     putStrLn $ "Due Date: " ++ dateDue task
     putStrLn $ "Reminder Date: " ++ dateToRemind task
     putStrLn "-----------------------------"
     displayTasks rest
     threadDelay 2000000 
-        
 
 -- User input loop
 userScreen :: IO ()
@@ -161,13 +199,13 @@ userScreen = do
     case userOption of
         "1" -> viewTasks
         "2" -> addTask
-        "3" -> putStrLn "You chose: Remove Task"
+        "3" -> removeTask
         "4" -> putStrLn "You chose: Mark Tasks as Completed"
         "5" -> putStrLn "You chose: Mark Tasks As Incomplete"
         "6" -> putStrLn "You chose: EXIT, Goodbye!"
         _   -> putStrLn "INVALID OPTION, ENTER A VALID OPTION!"
 
--- delay screen time so user can see whats being displayed
+    -- Delay screen time so user can see what's being displayed
     threadDelay 2000000 
     clearScreen
     
@@ -177,3 +215,4 @@ userScreen = do
 main :: IO ()
 main = do
     userScreen
+
